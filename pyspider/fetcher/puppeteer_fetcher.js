@@ -124,7 +124,7 @@ async function _fetch(page, options) {
 
     console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
-
+    console.log(response)
     if (error_message) {
         throw error_message
     }
