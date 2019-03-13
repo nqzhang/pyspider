@@ -72,8 +72,6 @@ class Fetcher(object):
         'use_gzip': True,
         'timeout': 120,
         'connect_timeout': 20,
-        'headless':"true",
-        'load_images':'false'
     }
     phantomjs_proxy = None
     splash_endpoint = None
