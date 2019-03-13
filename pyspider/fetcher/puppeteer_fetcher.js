@@ -69,54 +69,59 @@ async function _fetch(page, options) {
         console.log('console: ' + msg.args());
     });
 
-    // Http post method
-    let first_request = true;
-    let request_reseted = false;
-    await page.setRequestInterception(true);
-    if (options.method && options.method.toLowerCase() === "post") {
-        page.on("request", interceptedRequest => {
-            request_reseted = false;
-            end_time = null;
-            if (first_request) {
-                first_request = false;
-                var data = {
-                    "method": "POST",
-                    "postData": options.data
-                };
-                console.log(data);
-                interceptedRequest.continue(data);
-                request_reseted = true
-            }
-        })
-    } else {
-        page.on("request", interceptedRequest => {
-            request_reseted = false;
-            end_time = null;
-        })
-    }
+    let disableRequestInterception = options.disable_interception === "true" ? true:false
+    //console.log(disableRequestInterception)
+    if (!disableRequestInterception) {
+        console.log(1111)
+        // Http post method
+        let first_request = true;
+        let request_reseted = false;
+        await page.setRequestInterception(true);
+        if (options.method && options.method.toLowerCase() === "post") {
+            page.on("request", interceptedRequest => {
+                request_reseted = false;
+                end_time = null;
+                if (first_request) {
+                    first_request = false;
+                    var data = {
+                        "method": "POST",
+                        "postData": options.data
+                    };
+                    console.log(data);
+                    interceptedRequest.continue(data);
+                    request_reseted = true
+                }
+            })
+        } else {
+            page.on("request", interceptedRequest => {
+                request_reseted = false;
+                end_time = null;
+            })
+        }
 
-    // load images or not
-    if (options.load_images && options.load_images.toLowerCase() === "false") {
-        page.on("request", request => {
-            if (!!!request_reseted) {
-                if (request.resourceType() === 'image')
-                    request.abort();
-                else
-                    request.continue();
-            }
-        })
-    } else {
-        page.on("request", request => {
-            if (!!!request_reseted)
-                request.continue()
-        })
-    }
+        // load images or not
+        if (options.load_images && options.load_images.toLowerCase() === "false") {
+            page.on("request", request => {
+                if (!!!request_reseted) {
+                    if (request.resourceType() === 'image')
+                        request.abort();
+                    else
+                        request.continue();
+                }
+            })
+        } else {
+            page.on("request", request => {
+                if (!!!request_reseted)
+                    request.continue()
+            })
+        }
 
+
+    }
     let error_message = null;
     page.on("error", e => {
         error_message = e
     });
-
     let page_settings = {};
     var page_timeout = options.timeout ? options.timeout * 1000 : 20 * 1000;
     page_settings["timeout"] = page_timeout

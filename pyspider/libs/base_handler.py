@@ -221,7 +221,7 @@ class BaseHandler(object):
     fetch_fields = ('method', 'headers', 'user_agent', 'data', 'connect_timeout', 'timeout', 'allow_redirects', 'cookies',
                     'proxy', 'etag', 'last_modifed', 'last_modified', 'save', 'js_run_at', 'js_script',
                     'js_viewport_width', 'js_viewport_height', 'load_images', 'fetch_type', 'use_gzip', 'validate_cert',
-                    'max_redirects', 'robots_txt')
+                    'max_redirects', 'robots_txt','disable_interception')
     process_fields = ('callback', 'process_time_limit')
 
     @staticmethod
@@ -323,7 +323,6 @@ class BaseHandler(object):
             task['taskid'] = kwargs.pop('taskid')
         else:
             task['taskid'] = self.get_taskid(task)
-
         if kwargs:
             raise TypeError('crawl() got unexpected keyword argument: %s' % kwargs.keys())
 
