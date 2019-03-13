@@ -21,6 +21,7 @@ app.use(async (req, res, next) => {
         } else {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
+        console.log(options)
         browser_settings["headless"] = options.headless === "false"? false:true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
@@ -100,7 +101,8 @@ async function _fetch(page, options) {
         }
 
         // load images or not
-        if (options.load_images && options.load_images.toLowerCase() === "false") {
+        let load_images = options.load_images === "true" ? true:false
+        if (!load_images) {
             page.on("request", request => {
                 if (!!!request_reseted) {
                     if (request.resourceType() === 'image')
