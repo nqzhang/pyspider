@@ -21,7 +21,7 @@ app.use(async (req, res, next) => {
         } else {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
-        console.log(options)
+        //console.log(options)
         browser_settings["headless"] = options.headless === "false"? false:true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
