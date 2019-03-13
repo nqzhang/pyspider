@@ -124,7 +124,6 @@ async function _fetch(page, options) {
 
     console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
-    console.log(response)
     if (error_message) {
         throw error_message
     }
@@ -162,7 +161,18 @@ async function make_result(page, options, error) {
         headers = response.headers();
         page_content = await page.content();
     }
-
+    console.log({
+        orig_url: options.url,
+        status_code: status_code || 599,
+        error: error,
+        content: page_content,
+        headers: headers,
+        url: page.url(),
+        cookies: cookies,
+        time: (Date.now() - options.start_time) / 1000,
+        js_script_result: options.script_result,
+        save: options.save
+    })
     return {
         orig_url: options.url,
         status_code: status_code || 599,
