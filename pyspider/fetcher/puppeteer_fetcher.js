@@ -23,7 +23,7 @@ app.use(async (req, res, next) => {
         }
         //console.log(options)
         //browser_settings["headless"] = options.headless
-        browser_settings["headless"] = false
+        browser_settings["headless"] = true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
         console.log("init browser success!");
