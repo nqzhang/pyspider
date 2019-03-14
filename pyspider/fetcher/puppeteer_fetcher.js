@@ -138,7 +138,9 @@ async function _fetch(page, options) {
 
     if (options.js_script) {
         console.log('running document-end script.');
-        script_result = await page.evaluate(options.js_script);
+        script_result = await page.evaluate(async (js_script) => {
+                return new Function(js_script)();
+            },options.js_script);
         console.log("end script_result is: ", script_result);
         options.script_result = script_result
     }
