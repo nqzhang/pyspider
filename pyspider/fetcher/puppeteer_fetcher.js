@@ -13,6 +13,7 @@ let browser_settings = {};
 app.use(async (req, res, next) => {
     if (init_browser) {
         var options = req.body;
+        /***
         if (options.proxy) {
             if (options.proxy.indexOf("://") == -1) {
                 options.proxy = "http://" + options.proxy;
@@ -21,6 +22,8 @@ app.use(async (req, res, next) => {
         } else {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
+         ***/
+        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         //console.log(options)
         //browser_settings["headless"] = options.headless
         browser_settings["headless"] = true
