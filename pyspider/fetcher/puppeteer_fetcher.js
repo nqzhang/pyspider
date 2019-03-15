@@ -132,6 +132,7 @@ async function _fetch(page, options) {
 
     console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
+    await page.setContent((await response.buffer()).toString('utf8'));
     if (error_message) {
         throw error_message
     }
