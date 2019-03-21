@@ -35,8 +35,23 @@ app.use(async (req, res, next) => {
         next();
     };
 });
-
-
+    async function autoScroll(page,kiwi_var){
+        await page.evaluate(async (kiwi_var) => {
+            await new Promise((resolve, reject) => {
+                var totalScrolld = 0;
+                var distance = document.documentElement.clientHeight;
+                var timer = setInterval(() => {
+                    var scrollHeight = document.body.scrollHeight;
+                    window.scrollBy(0, distance);
+                    totalScrolld += 1;
+                    if(totalScrolld >= kiwi_var['scrool_times']){
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, kiwi_var['scrool_wait']);
+            });
+        },kiwi_var);
+}
 async function fetch(options) {
     var page = await browser.newPage();
     options.start_time = Date.now();
@@ -136,15 +151,18 @@ async function _fetch(page, options) {
     console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
     await page.setContent((await response.buffer()).toString('utf8'));
+    if (options.kiwi_var) {
+        var kiwi_var = options.kiwi_var
+        await autoScroll(page,kiwi_var);
+
+    }
     if (error_message) {
         throw error_message
     }
 
     if (options.js_script) {
         console.log('running document-end script.');
-        script_result = await page.evaluate(async (js_script) => {
-                return new Function(js_script)();
-            },options.js_script);
+        script_result = await page.evaluate(options.js_script);
         console.log("end script_result is: ", script_result);
         options.script_result = script_result
     }
