@@ -153,7 +153,11 @@ async function _fetch(page, options) {
     await page.setContent((await response.buffer()).toString('utf8'));
     if (options.kiwi_var) {
         var kiwi_var = options.kiwi_var
-        await autoScroll(page,kiwi_var);
+        if (kiwi_var['scrool_times']) {
+            kiwi_var['scrool_wait'] = kiwi_var['scrool_wait'] ? kiwi_var['scrool_wait'] : 500;
+            console.log(kiwi_var)
+            await autoScroll(page, kiwi_var);
+        }
 
     }
     if (error_message) {
