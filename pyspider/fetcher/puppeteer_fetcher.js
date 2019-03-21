@@ -26,7 +26,7 @@ app.use(async (req, res, next) => {
         browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         //console.log(options)
         //browser_settings["headless"] = options.headless
-        browser_settings["headless"] = true
+        browser_settings["headless"] = false
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
         console.log("init browser success!");
@@ -85,9 +85,9 @@ async function _fetch(page, options) {
         page.setUserAgent(options.headers["User-Agent"]);
     }
 
-    page.on("console", msg => {
-        console.log('console: ' + msg.args());
-    });
+    //page.on("console", msg => {
+     //   console.log('console: ' + msg.args());
+    //});
 
     let disableRequestInterception = options.disable_interception === "true" ? true:false
     //console.log(disableRequestInterception)
