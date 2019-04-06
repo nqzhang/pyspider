@@ -124,7 +124,10 @@ async function _fetch(page, options) {
         if (!load_images) {
             page.on("request", request => {
                 if (!!!request_reseted) {
-                    if (request.resourceType() === 'image')
+                    resource_type = request.resourceType()
+                    if (resource_type === 'image' || request.resourceType() === 'stylesheet'
+                        || resource_type === 'media' || resource_type === 'font' || resource_type === 'media'
+                    )
                         request.abort();
                     else
                         request.continue();
@@ -146,7 +149,7 @@ async function _fetch(page, options) {
     let page_settings = {};
     var page_timeout = options.timeout ? options.timeout * 1000 : 20 * 1000;
     page_settings["timeout"] = page_timeout
-    page_settings["waitUntil"] = ["domcontentloaded", "networkidle0"];
+    page_settings["waitUntil"] = ["domcontentloaded"];
 
     console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
