@@ -1,6 +1,7 @@
 const express = require("express");
 const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
+const ProxyChain = require('proxy-chain');
 
 const app = express();
 
@@ -23,10 +24,10 @@ app.use(async (req, res, next) => {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
          ***/
-        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
+        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--proxy-server=127.0.0.1:22223"];
         //console.log(options)
         //browser_settings["headless"] = options.headless
-        browser_settings["headless"] = true
+        browser_settings["headless"] = false
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
         console.log("init browser success!");
@@ -82,7 +83,7 @@ async function _fetch(page, options) {
     }
 
     if (options.headers && options.headers["User-Agent"]) {
-        page.setUserAgent(options.headers["User-Agent"]);
+        page.setUserAgent(options.headers["User-Agent"] + ' realproxy ' + options.proxy);
     }
 
     //page.on("console", msg => {
@@ -249,6 +250,29 @@ app.post("/", async (request, response) => {
     }
 });
 
+const ProxyChainServer = new ProxyChain.Server({
+  // Port where the server the server will listen. By default 8000.
+  port: 22223,
+
+  // Enables verbose logging
+  verbose: false,
+
+  prepareRequestFunction: ({
+    request
+  }) => {
+    let upstreamProxyUrl;
+    useragent = request.headers['user-agent'];
+    real_useragent = useragent.split(' realproxy ')[0];
+      real_proxy = useragent.split(' realproxy ')[1];
+      request.headers['user-agent'] = real_useragent;
+    if (real_proxy) upstreamProxyUrl = real_proxy;
+    return { upstreamProxyUrl };
+  },
+});
+
+ProxyChainServer.listen(() => {
+  console.log(`Router Proxy server is listening on port ${22223}`);
+});
 
 let port = 22222;
 
