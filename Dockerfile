@@ -31,7 +31,7 @@ ADD ./ /opt/pyspider
 WORKDIR /opt/pyspider
 RUN pip install -e .[all]
 
-RUN npm i puppeteer express proxy-chain
+RUN npm i puppeteer express
 
 VOLUME ["/opt/pyspider"]
 ENTRYPOINT ["pyspider"]
