@@ -105,8 +105,8 @@ class PostHandler(tornado.web.RequestHandler):
             result['status_code'] = 599
             traceback.print_exc()
         finally:
-            pass
-            #await page.close()
+            #pass
+            await page.close()
         #print('result=', result)
         return json.dumps(result)
     async def get(self, *args, **kwargs):
