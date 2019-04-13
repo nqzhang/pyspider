@@ -1,6 +1,6 @@
-FROM centos/python-36-centos7
-RUN mkdir -p /opt/pyspider
-WORKDIR "/opt/pyspider"
-
+FROM python:3.6
+RUN mkdir -p /opt/
+WORKDIR /opt
 RUN git clone -b pyppeteer https://github.com/nqzhang/pyspider
-pip3.6 install -r requirements.txt
+WORKDIR /opt/pyspider
+RUN pip3.6 install -r requirements.txt

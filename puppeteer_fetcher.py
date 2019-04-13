@@ -92,6 +92,7 @@ class PostHandler(tornado.web.RequestHandler):
             await page.setRequestInterception(True)
             page.on('request',lambda req:asyncio.ensure_future(request_check(req)))
             response = await page.goto(fetch['url'], page_settings)
+            print('goto ',fetch['url'])
 
             result['content'] = await page.content()
             result['url'] = page.url
