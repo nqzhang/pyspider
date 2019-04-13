@@ -29,7 +29,7 @@ ADD ./ /opt/pyspider
 
 # run test
 WORKDIR /opt/pyspider
-RUN pip install -e .[all] --ignore-installed
+RUN pip install -e .[all]
 
 RUN npm i puppeteer express
 

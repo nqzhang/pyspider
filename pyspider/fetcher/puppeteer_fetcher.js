@@ -1,6 +1,7 @@
 const express = require("express");
 const puppeteer = require('puppeteer');
 const bodyParser = require('body-parser');
+const ProxyChain = require('proxy-chain');
 
 const app = express();
 
@@ -13,6 +14,7 @@ let browser_settings = {};
 app.use(async (req, res, next) => {
     if (init_browser) {
         var options = req.body;
+        /***
         if (options.proxy) {
             if (options.proxy.indexOf("://") == -1) {
                 options.proxy = "http://" + options.proxy;
@@ -21,7 +23,11 @@ app.use(async (req, res, next) => {
         } else {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
-        browser_settings["headless"] = options.headless === "false"? false:true
+         ***/
+        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--proxy-server=127.0.0.1:22223"];
+        //console.log(options)
+        //browser_settings["headless"] = options.headless
+        browser_settings["headless"] = true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
         console.log("init browser success!");
@@ -30,8 +36,23 @@ app.use(async (req, res, next) => {
         next();
     };
 });
-
-
+    async function autoScroll(page,kiwi_var){
+        await page.evaluate(async (kiwi_var) => {
+            await new Promise((resolve, reject) => {
+                var totalScrolld = 0;
+                var distance = document.documentElement.clientHeight;
+                var timer = setInterval(() => {
+                    var scrollHeight = document.body.scrollHeight;
+                    window.scrollBy(0, distance);
+                    totalScrolld += 1;
+                    if(totalScrolld >= kiwi_var['scrool_times']){
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, kiwi_var['scrool_wait']);
+            });
+        },kiwi_var);
+}
 async function fetch(options) {
     var page = await browser.newPage();
     options.start_time = Date.now();
@@ -62,69 +83,87 @@ async function _fetch(page, options) {
     }
 
     if (options.headers && options.headers["User-Agent"]) {
-        page.setUserAgent(options.headers["User-Agent"]);
+        page.setUserAgent(options.headers["User-Agent"] + ' realproxy ' + options.proxy);
     }
 
-    page.on("console", msg => {
-        console.log('console: ' + msg.args());
-    });
+    //page.on("console", msg => {
+     //   console.log('console: ' + msg.args());
+    //});
 
-    // Http post method
-    let first_request = true;
-    let request_reseted = false;
-    await page.setRequestInterception(true);
-    if (options.method && options.method.toLowerCase() === "post") {
-        page.on("request", interceptedRequest => {
-            request_reseted = false;
-            end_time = null;
-            if (first_request) {
-                first_request = false;
-                var data = {
-                    "method": "POST",
-                    "postData": options.data
-                };
-                console.log(data);
-                interceptedRequest.continue(data);
-                request_reseted = true
-            }
-        })
-    } else {
-        page.on("request", interceptedRequest => {
-            request_reseted = false;
-            end_time = null;
-        })
+    let disableRequestInterception = options.disable_interception === "true" ? true:false
+    //console.log(disableRequestInterception)
+    if (!disableRequestInterception) {
+        console.log(1111)
+        // Http post method
+        let first_request = true;
+        let request_reseted = false;
+        await page.setRequestInterception(true);
+        if (options.method && options.method.toLowerCase() === "post") {
+            page.on("request", interceptedRequest => {
+                request_reseted = false;
+                end_time = null;
+                if (first_request) {
+                    first_request = false;
+                    var data = {
+                        "method": "POST",
+                        "postData": options.data
+                    };
+                    console.log(data);
+                    interceptedRequest.continue(data);
+                    request_reseted = true
+                }
+            })
+        } else {
+            page.on("request", interceptedRequest => {
+                request_reseted = false;
+                end_time = null;
+            })
+        }
+
+        // load images or not
+        let load_images = options.load_images === "true" ? true:false
+        if (!load_images) {
+            page.on("request", request => {
+                if (!!!request_reseted) {
+                    resource_type = request.resourceType()
+                    if (resource_type === 'image' || request.resourceType() === 'stylesheet'
+                        || resource_type === 'media' || resource_type === 'font' || resource_type === 'media'
+                    )
+                        request.abort();
+                    else
+                        request.continue();
+                }
+            })
+        } else {
+            page.on("request", request => {
+                if (!!!request_reseted)
+                    request.continue()
+            })
+        }
+
+
     }
-
-    // load images or not
-    if (options.load_images && options.load_images.toLowerCase() === "false") {
-        page.on("request", request => {
-            if (!!!request_reseted) {
-                if (request.resourceType() === 'image')
-                    request.abort();
-                else
-                    request.continue();
-            }
-        })
-    } else {
-        page.on("request", request => {
-            if (!!!request_reseted)
-                request.continue()
-        })
-    }
-
     let error_message = null;
     page.on("error", e => {
         error_message = e
     });
-
     let page_settings = {};
     var page_timeout = options.timeout ? options.timeout * 1000 : 20 * 1000;
     page_settings["timeout"] = page_timeout
-    page_settings["waitUntil"] = ["domcontentloaded", "networkidle0"];
+    page_settings["waitUntil"] = ["domcontentloaded"];
 
     console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
+    await page.setContent((await response.buffer()).toString('utf8'));
+    if (options.kiwi_var) {
+        var kiwi_var = options.kiwi_var
+        if (kiwi_var['scrool_times']) {
+            kiwi_var['scrool_wait'] = kiwi_var['scrool_wait'] ? kiwi_var['scrool_wait'] : 500;
+            console.log(kiwi_var)
+            await autoScroll(page, kiwi_var);
+        }
 
+    }
     if (error_message) {
         throw error_message
     }
@@ -189,7 +228,7 @@ app.get("/", function (request, response) {
 
 
 
-let max_open_pages = 100;
+let max_open_pages = 20;
 let opened_page_nums = 0;
 
 app.post("/", async (request, response) => {
@@ -211,6 +250,29 @@ app.post("/", async (request, response) => {
     }
 });
 
+const ProxyChainServer = new ProxyChain.Server({
+  // Port where the server the server will listen. By default 8000.
+  port: 22223,
+
+  // Enables verbose logging
+  verbose: false,
+
+  prepareRequestFunction: ({
+    request
+  }) => {
+    let upstreamProxyUrl;
+    useragent = request.headers['user-agent'];
+    real_useragent = useragent.split(' realproxy ')[0];
+      real_proxy = useragent.split(' realproxy ')[1];
+      request.headers['user-agent'] = real_useragent;
+    if (real_proxy) upstreamProxyUrl = real_proxy;
+    return { upstreamProxyUrl };
+  },
+});
+
+ProxyChainServer.listen(() => {
+  console.log(`Router Proxy server is listening on port ${22223}`);
+});
 
 let port = 22222;
 
