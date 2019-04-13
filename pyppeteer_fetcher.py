@@ -28,7 +28,7 @@ class Application(tornado.web.Application):
 async def run_browser():
     browser_settings = {}
     #browser_settings['executablePath'] = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
-    browser_settings["headless"] = False
+    browser_settings["headless"] = True
     browser_settings['devtools'] = True
     browser_settings['autoClose'] = False
     browser_settings['ignoreHTTPSErrors'] = True
