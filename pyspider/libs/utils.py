@@ -435,6 +435,7 @@ def check_port_open(port, addr='127.0.0.1'):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     result = sock.connect_ex((addr, port))
     if result == 0:
+        sock.close()
         return True
     else:
         return False
