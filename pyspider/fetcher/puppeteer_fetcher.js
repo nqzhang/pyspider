@@ -13,6 +13,7 @@ let browser_settings = {};
 app.use(async (req, res, next) => {
     if (init_browser) {
         var options = req.body;
+        /*
         if (options.proxy) {
             if (options.proxy.indexOf("://") == -1) {
                 options.proxy = "http://" + options.proxy;
@@ -21,6 +22,8 @@ app.use(async (req, res, next) => {
         } else {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
+        */
+        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox", "--proxy-server=127.0.0.1:8888"];
         browser_settings["headless"] = options.headless === "false"? false:true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
@@ -58,11 +61,16 @@ async function _fetch(page, options) {
     });
 
     if (options.headers) {
+        //options.headers.proxy = options.proxy
         await page.setExtraHTTPHeaders(options.headers);
     }
-
+    //await page.setExtraHTTPHeaders({"proxy":"qunimade"});
     if (options.headers && options.headers["User-Agent"]) {
-        page.setUserAgent(options.headers["User-Agent"]);
+        if (options.proxy) {
+            page.setUserAgent(options.headers["User-Agent"] + "injectproxy" + options.proxy + "injectproxy");
+        } else {
+            page.setUserAgent(options.headers["User-Agent"]);
+        }
     }
 
     page.on("console", msg => {
@@ -189,7 +197,7 @@ app.get("/", function (request, response) {
 
 
 
-let max_open_pages = 20;
+let max_open_pages = 50;
 let opened_page_nums = 0;
 
 app.post("/", async (request, response) => {
