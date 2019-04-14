@@ -31,7 +31,7 @@ ADD ./ /opt/pyspider
 WORKDIR /opt/pyspider
 RUN pip install -e .[all]
 
-RUN npm i puppeteer express
+RUN npm i puppeteer@1.12.2 express
 
 VOLUME ["/opt/pyspider"]
 ENTRYPOINT ["pyspider"]
