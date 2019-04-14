@@ -67,7 +67,7 @@ class ForwordProxy():
         finally:
             local_writer.close()
     def start(self):
-        coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port,loop=self.loop,backlog=5000)
+        coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port,loop=self.loop,backlog=5000,reuse_address=True,reuse_port=True,start_serving=True)
         #asyncio.ensure_future(coro)
         self.loop.run_until_complete(coro)
 
