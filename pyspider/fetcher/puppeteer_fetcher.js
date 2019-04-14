@@ -215,6 +215,7 @@ app.post("/", async (request, response) => {
         let options = request.body;
         result = await fetch(options);
         opened_page_nums -= 1;
+        console.log('goto ', options.url,status_code);
         response.send(result)
     }
 });
