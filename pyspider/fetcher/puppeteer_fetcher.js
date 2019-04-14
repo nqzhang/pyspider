@@ -23,7 +23,7 @@ app.use(async (req, res, next) => {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
         */
-        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox", "--proxy-server=127.0.0.1:8888"];
+        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--user-data-dir=/dev/shm/puppeteer", "--proxy-server=127.0.0.1:8888"];
         browser_settings["headless"] = true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;

@@ -36,7 +36,7 @@ class ForwordProxy():
     async def handle_client(self,local_reader, local_writer):
         try:
             data = await local_reader.read(2048)
-            logging.info(data)
+            #logging.info(data)
             headers = HTTPHeaders.parse(data.decode())
             proxy = re.search(b'injectproxy(.*)injectproxy', data)
             CONNECT = False
