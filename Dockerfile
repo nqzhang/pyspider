@@ -24,9 +24,6 @@ RUN pip install 'https://dev.mysql.com/get/Downloads/Connector-Python/mysql-conn
 COPY requirements.txt /opt/pyspider/requirements.txt
 RUN pip install -r /opt/pyspider/requirements.txt
 
-# add all repo
-ADD ./ /opt/pyspider
-
 # run test
 WORKDIR /opt/pyspider
 RUN pip install -e .[all]
@@ -34,6 +31,6 @@ RUN pip install -e .[all]
 RUN npm i puppeteer@1.12.2 express
 
 VOLUME ["/opt/pyspider"]
-ENTRYPOINT ["pyspider"]
+CMD ["python3.6", "run.py", "puppeteer"]
 
 EXPOSE 5000 23333 24444 25555 22222
