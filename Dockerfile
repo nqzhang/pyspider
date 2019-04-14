@@ -24,10 +24,14 @@ RUN pip install 'https://dev.mysql.com/get/Downloads/Connector-Python/mysql-conn
 COPY requirements.txt /opt/pyspider/requirements.txt
 RUN pip install -r /opt/pyspider/requirements.txt
 
+# add all repo
+COPY ./ /opt/pyspider
+
 # run test
 WORKDIR /opt/pyspider
 RUN pip install -e .[all]
 
+RUN npm init -f
 RUN npm i puppeteer@1.12.2 express
 
 VOLUME ["/opt/pyspider"]
