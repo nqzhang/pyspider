@@ -72,7 +72,7 @@ class ForwordProxy():
         self.loop.run_until_complete(coro)
 
 def run():
-    loop = asyncio.get_event_loop()
+    loop = asyncio.new_event_loop()
     fp=ForwordProxy(loop,8888)
     fp.start()
     loop.run_forever()
