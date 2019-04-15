@@ -44,8 +44,8 @@ class ForwordProxy():
             proxy = re.search(b'injectproxy(.*)injectproxy', data)
             CONNECT = False
             if proxy:
-                host,port = urlparse(proxy.group(1).decode()).netloc.split(':')
-                print(host,port)
+                regex = re.compile(b"^http://|^https://|^socks5://")
+                host,port = regex.sub(b'',proxy.group(1)).split(b":")
                 #去掉设置puppeteer的 "proxy" 头
                 data = re.sub(b'injectproxy(.*)injectproxy', b'', data)
             else:

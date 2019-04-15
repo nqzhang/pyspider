@@ -44,7 +44,7 @@ async function fetch(options) {
         await page.close();
         return result
     } catch (error) {
-        console.log('catch error ', error);
+        console.log('catch error ', options.url,error);
         var result = await make_result(page, options, error);
         await page.close();
         return result
