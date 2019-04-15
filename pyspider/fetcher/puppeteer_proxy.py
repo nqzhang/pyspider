@@ -6,7 +6,7 @@ import tornado.web
 from tornado.ioloop import IOLoop
 from tornado.platform.asyncio import AsyncIOMainLoop
 import traceback
-import re
+import re,os
 from tornado.httputil import HTTPHeaders
 from urllib.parse import urlparse,urlunparse
 try:
@@ -75,7 +75,7 @@ class ForwordProxy():
         self.loop.run_until_complete(coro)
 
 def run():
-    with open('../../config.json') as f:
+    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../config.json')) as f:
         config = json.load(f)
     global env
     env = config.get('env','production')
