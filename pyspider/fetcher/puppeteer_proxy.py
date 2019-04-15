@@ -29,8 +29,7 @@ class ForwordProxy():
             while not reader.at_eof():
                 data = await reader.read(2048)
                 writer.write(data)
-                #await writer.drain()
-        except ConnectionError as e:
+        except (ConnectionError,RuntimeError) as e:
             pass
             #logging.warning(f"connection was reset; {e}")
         finally:
