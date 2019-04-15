@@ -16,7 +16,7 @@ try:
 except:
     pass
 import logging
-logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.CRITICAL)
+logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.INFO)
 #import config
 
 
@@ -30,6 +30,9 @@ class ForwordProxy():
                 data = await reader.read(2048)
                 writer.write(data)
                 #await writer.drain()
+        except ConnectionError as e:
+            pass
+            #logging.warning(f"connection was reset; {e}")
         finally:
             writer.close()
 
@@ -53,7 +56,11 @@ class ForwordProxy():
                 host, port = dest.split(':') if ':' in dest  else (dest,80)
                 #host, port = "127.0.0.1",1080
             #如果使用代理，或者不使用代理而且是http请求则直接连接代理或者目标服务器
-            remote_reader, remote_writer = await asyncio.open_connection(host, port,loop=self.loop,ssl=False)
+            fut = asyncio.open_connection(host, port,loop=self.loop,ssl=False)
+            try:
+                remote_reader, remote_writer = await asyncio.wait_for(fut, timeout=3)
+            except (asyncio.TimeoutError,ConnectionRefusedError):
+                return
             if CONNECT:
                 #如果是https且不使用代理服务器，直接响应200请求给puppeteer
                 local_writer.write(b'HTTP/1.1 200 Connection established\r\n\r\n')
