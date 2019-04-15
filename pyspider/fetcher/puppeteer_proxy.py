@@ -67,11 +67,19 @@ class ForwordProxy():
         finally:
             local_writer.close()
     def start(self):
-        coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port,loop=self.loop,backlog=5000,reuse_address=True,reuse_port=True)
+        global env
+        if env == 'production':
+            coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port,loop=self.loop,backlog=5000,reuse_address=True,reuse_port=True)
+        else:
+            coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port, loop=self.loop)
         #asyncio.ensure_future(coro)
         self.loop.run_until_complete(coro)
 
 def run():
+    with open('../../config.json') as f:
+        config = json.load(f)
+    env = config.get('env','production')
+    logging.info(env)
     loop = asyncio.new_event_loop()
     fp=ForwordProxy(loop,8888)
     fp.start()
