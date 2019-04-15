@@ -73,9 +73,9 @@ async function _fetch(page, options) {
         }
     }
 
-    page.on("console", msg => {
-        console.log('console: ' + msg.args());
-    });
+    //page.on("console", msg => {
+    //    console.log('console: ' + msg.args());
+    //});
 
     // Http post method
     let first_request = true;
@@ -130,7 +130,7 @@ async function _fetch(page, options) {
     page_settings["timeout"] = page_timeout
     page_settings["waitUntil"] = ["domcontentloaded", "networkidle0"];
 
-    console.log('goto ', options.url)
+    //console.log('goto ', options.url)
     var response = await page.goto(options.url, page_settings);
 
     if (error_message) {
