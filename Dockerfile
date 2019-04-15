@@ -28,7 +28,7 @@ RUN pip install -r /opt/pyspider/requirements.txt
 COPY ./ /opt/pyspider
 
 # run test
-WORKDIR /opt/pyspider
+ADD ./ /opt/pyspider
 RUN pip install -e .[all]
 
 RUN npm init -f
