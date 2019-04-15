@@ -462,8 +462,6 @@ def puppeteer(ctx, port, auto_restart, args):
     try:
         print(cmd)
         _puppeteer = subprocess.Popen(cmd)
-        from pyspider.fetcher.puppeteer_proxy import run
-        utils.run_in_thread(run())
     except OSError:
         logging.warning('puppeteer not found, continue running without it.')
         return None

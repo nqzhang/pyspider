@@ -16,7 +16,7 @@ try:
 except:
     pass
 import logging
-logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.critical)
+logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.INFO)
 #import config
 
 
@@ -67,7 +67,6 @@ class ForwordProxy():
         finally:
             local_writer.close()
     def start(self):
-        global env
         if env == 'production':
             coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port,loop=self.loop,backlog=5000,reuse_address=True,reuse_port=True)
         else:
@@ -78,6 +77,7 @@ class ForwordProxy():
 def run():
     with open('../../config.json') as f:
         config = json.load(f)
+    global env
     env = config.get('env','production')
     logging.info(env)
     loop = asyncio.new_event_loop()
