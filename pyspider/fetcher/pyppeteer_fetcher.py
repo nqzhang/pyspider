@@ -110,6 +110,8 @@ class PostHandler(tornado.web.RequestHandler):
             end_time = datetime.datetime.now()
             result['time'] = (end_time - start_time).total_seconds()
         except Exception as e:
+            logging.debug(browser)
+            logging.debug(page)
             result['error'] = str(e)
             result['status_code'] = 599
             traceback.print_exc()
