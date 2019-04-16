@@ -58,14 +58,15 @@ class PostHandler(tornado.web.RequestHandler):
                 await req.abort()
 
             else:
-                headers = req.headers
-                if proxy:
-                    fetch['headers']['proxy'] = proxy
-                    headers.update(fetch['headers'])
-                    # 通过在header设置 "proxy" 头供代理服务器连接接真实代理服务器，代理服务器发出请求时去掉这个头
-                    await req.continue_(overrides={"headers":headers})
-                else:
-                    await req.continue_()
+                await req.continue_()
+                # headers = req.headers
+                # if proxy:
+                #     fetch['headers']['proxy'] = proxy
+                #     headers.update(fetch['headers'])
+                #     # 通过在header设置 "proxy" 头供代理服务器连接接真实代理服务器，代理服务器发出请求时去掉这个头
+                #     await req.continue_(overrides={"headers":headers})
+                # else:
+                #    await req.continue_()
 
         result = {'orig_url': fetch['url'],
                   'status_code': 200,
@@ -91,7 +92,7 @@ class PostHandler(tornado.web.RequestHandler):
             proxy = fetch.get('proxy',None)
 
             #print(fetch['headers'])
-            #await page.setExtraHTTPHeaders(fetch['headers'])
+            await page.setExtraHTTPHeaders(fetch['headers'])
             await page.setUserAgent(fetch['headers']['User-Agent'])
             page_settings = {}
             page_settings["waitUntil"] = ["domcontentloaded","networkidle2"]
@@ -124,6 +125,12 @@ class PostHandler(tornado.web.RequestHandler):
         self.set_status(403)
         self.write(body)
     async def post(self, *args, **kwargs):
+        pages = await self.application.browser.pages()
+        if len(pages)> 5:
+            body = "browser pages is too many, open new browser process!"
+            self.set_status(403)
+            self.write(body);
+            return
         raw_data = self.request.body.decode('utf8')
         fetch = json.loads(raw_data, encoding='utf-8')
         result = await self._fetch(fetch)
