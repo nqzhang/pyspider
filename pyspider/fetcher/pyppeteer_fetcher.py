@@ -99,7 +99,7 @@ class PostHandler(tornado.web.RequestHandler):
             page_settings["timeout"] = fetch['timeout'] * 1000
             #print(page_settings["timeout"])
             #await page.setRequestInterception(True)
-            page.on('request',lambda req:asyncio.ensure_future(request_check(req)))
+            #page.on('request',lambda req:asyncio.ensure_future(request_check(req)))
             response = await page.goto(fetch['url'], page_settings)
 
             result['content'] = await page.content()
