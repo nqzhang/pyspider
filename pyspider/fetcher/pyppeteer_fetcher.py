@@ -116,7 +116,7 @@ class PostHandler(tornado.web.RequestHandler):
             #pass
             await page.close()
         #print('result=', result)
-        return json.dumps(result)
+        return result
     async def get(self, *args, **kwargs):
         body = "method not allowed!"
         self.set_header('cache-control','no-cache,no-store')
@@ -127,10 +127,9 @@ class PostHandler(tornado.web.RequestHandler):
         raw_data = self.request.body.decode('utf8')
         fetch = json.loads(raw_data, encoding='utf-8')
         result = await self._fetch(fetch)
-        logging.info(fetch['url'],result)
+        logging.info('{} {}'.format(fetch['url'],result['status_code']))
         #print(result)
         self.write(result)
-
 class ForwordProxy():
     def __init__(self,loop,port):
         self.loop = loop
