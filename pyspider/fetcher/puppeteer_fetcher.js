@@ -23,7 +23,7 @@ app.use(async (req, res, next) => {
           browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox"];
         }
         */
-        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--user-data-dir=/dev/shm/puppeteer", "--proxy-server=127.0.0.1:8888"];
+        browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--user-data-dir=/dev/shm/puppeteer2","--remote-debugging-address=0.0.0.0","--remote-debugging-port=" + (port + 10000)];
         browser_settings["headless"] = true
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
@@ -198,7 +198,7 @@ app.get("/", function (request, response) {
 
 
 
-let max_open_pages = 50;
+let max_open_pages = 10;
 let opened_page_nums = 0;
 
 app.post("/", async (request, response) => {
