@@ -24,7 +24,7 @@ app.use(async (req, res, next) => {
         }
         */
         browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--user-data-dir=/dev/shm/puppeteer","--remote-debugging-address=0.0.0.0","--remote-debugging-port=" + (port + 10000)];
-        browser_settings["headless"] = true
+        browser_settings["headless"] = false
         browser = await puppeteer.launch(browser_settings);
         init_browser=false;
         console.log("init browser success!");
@@ -59,18 +59,16 @@ async function _fetch(page, options) {
         "width": width,
         "height": height
     });
-
+    await page.evaluateOnNewDocument(() => {
+          Object.defineProperty(navigator, 'webdriver', {
+            get: () => false,
+          });
+        })
     if (options.headers) {
-        //options.headers.proxy = options.proxy
         await page.setExtraHTTPHeaders(options.headers);
     }
-    //await page.setExtraHTTPHeaders({"proxy":"qunimade"});
     if (options.headers && options.headers["User-Agent"]) {
-        if (options.proxy) {
-            page.setUserAgent(options.headers["User-Agent"] + "injectproxy" + options.proxy + "injectproxy");
-        } else {
             page.setUserAgent(options.headers["User-Agent"]);
-        }
     }
 
     //page.on("console", msg => {
