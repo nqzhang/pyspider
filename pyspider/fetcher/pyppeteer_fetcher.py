@@ -31,11 +31,14 @@ class Application(tornado.web.Application):
 async def run_browser():
     browser_settings = {}
     #browser_settings['executablePath'] = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
-    browser_settings["headless"] = True
+    browser_settings["headless"] = False
     browser_settings['devtools'] = False
     browser_settings['autoClose'] = True
     browser_settings['ignoreHTTPSErrors'] = True
     # 在浏览器级别设置本地代理
+    if env == "production":
+        browser_settings['executablePath'] = '/usr/bin/google-chrome-stable'
+        browser_settings["headless"] = True
     browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--disable-gpu"];
     browser =  await launch(browser_settings)
     return browser
@@ -93,7 +96,7 @@ class PostHandler(tornado.web.RequestHandler):
             page_settings = {}
             page_settings["waitUntil"] = ["domcontentloaded","networkidle2"]
             page_settings["timeout"] = fetch['timeout'] * 1000
-            print(page_settings["timeout"])
+            #print(page_settings["timeout"])
             await page.setRequestInterception(True)
             page.on('request',lambda req:asyncio.ensure_future(request_check(req)))
             response = await page.goto(fetch['url'], page_settings)
@@ -124,6 +127,7 @@ class PostHandler(tornado.web.RequestHandler):
         raw_data = self.request.body.decode('utf8')
         fetch = json.loads(raw_data, encoding='utf-8')
         result = await self._fetch(fetch)
+        logging.info(fetch['url'],result)
         #print(result)
         self.write(result)
 
