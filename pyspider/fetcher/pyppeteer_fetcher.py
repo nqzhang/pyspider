@@ -21,6 +21,7 @@ logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:
 
 class Application(tornado.web.Application):
     def __init__(self):
+        self.pages = 0
         handlers = [
             (r"/", PostHandler),
         ]
@@ -52,7 +53,7 @@ def _parse_cookie(cookie_list):
     return {}
 
 class PostHandler(tornado.web.RequestHandler):
-    async def _fetch(self,fetch):
+    async def _fetch(self,fetch,page):
         async def request_check(req):
             if req.resourceType == 'image':
                 await req.abort()
@@ -80,10 +81,8 @@ class PostHandler(tornado.web.RequestHandler):
                   'save': '' if fetch.get('save') is None else fetch.get('save')
                   }
         try:
-            browser = self.application.browser
             start_time = datetime.datetime.now()
 
-            page = await browser.newPage()
             await page.evaluateOnNewDocument('''() => {
                   Object.defineProperty(navigator, 'webdriver', {
                     get: () => false,
@@ -110,14 +109,11 @@ class PostHandler(tornado.web.RequestHandler):
             end_time = datetime.datetime.now()
             result['time'] = (end_time - start_time).total_seconds()
         except Exception as e:
-            logging.debug(browser)
-            logging.debug(page)
             result['error'] = str(e)
             result['status_code'] = 599
             traceback.print_exc()
         finally:
-            #pass
-            await page.close()
+            pass
         #print('result=', result)
         return result
     async def get(self, *args, **kwargs):
@@ -127,15 +123,27 @@ class PostHandler(tornado.web.RequestHandler):
         self.set_status(403)
         self.write(body)
     async def post(self, *args, **kwargs):
-        pages = await self.application.browser.pages()
-        if len(pages)> 5:
+        logging.info(self.application.pages)
+        browser = self.application.browser
+        page = await browser.newPage()
+
+        if self.application.pages > 5:
             body = "browser pages is too many, open new browser process!"
             self.set_status(403)
-            self.write(body);
+            logging.info(body)
+            self.write(body)
             return
         raw_data = self.request.body.decode('utf8')
         fetch = json.loads(raw_data, encoding='utf-8')
-        result = await self._fetch(fetch)
+        try:
+            self.application.pages += 1
+            result = await self._fetch(fetch,page)
+        except Exception as e:
+            logging.info(e)
+        finally:
+            await page.close()
+            self.application.pages -= 1
+
         logging.info('{} {}'.format(fetch['url'],result['status_code']))
         #print(result)
         self.write(result)
