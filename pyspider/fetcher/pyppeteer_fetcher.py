@@ -1,8 +1,8 @@
 import json
 import datetime
-from pyppeteer import launch
 import asyncio
 import tornado.web
+import tornado.httpclient
 from tornado.ioloop import IOLoop
 from tornado.platform.asyncio import AsyncIOMainLoop
 import traceback
@@ -17,11 +17,26 @@ except:
     pass
 import logging
 logging.basicConfig(format='%(asctime)s - %(message)s', datefmt='%d-%b-%y %H:%M:%S',level=logging.INFO)
-#import config
+
+def patch_pyppeteer():
+    import websockets
+    import pyppeteer
+    if float(websockets.__version__) > 6.0:
+        original_method = pyppeteer.connection.websockets.client.connect
+
+        def new_method(*args, **kwargs):
+            kwargs['ping_interval'] = None
+            kwargs['ping_timeout'] = None
+            return original_method(*args, **kwargs)
+        pyppeteer.connection.websockets.client.connect = new_method
+patch_pyppeteer()
+import pyppeteer
 
 class Application(tornado.web.Application):
     def __init__(self):
         self.pages = 0
+        tornado.httpclient.AsyncHTTPClient.configure("tornado.curl_httpclient.CurlAsyncHTTPClient")
+        self.http_client = tornado.httpclient.AsyncHTTPClient(max_clients=100)
         handlers = [
             (r"/", PostHandler),
         ]
@@ -31,7 +46,6 @@ class Application(tornado.web.Application):
 
 async def run_browser():
     browser_settings = {}
-    #browser_settings['executablePath'] = 'C:\Program Files (x86)\Google\Chrome\Application\chrome.exe'
     browser_settings["headless"] = False
     browser_settings['devtools'] = False
     browser_settings['autoClose'] = True
@@ -41,7 +55,7 @@ async def run_browser():
         browser_settings['executablePath'] = '/usr/bin/google-chrome-stable'
         browser_settings["headless"] = True
     browser_settings["args"] = ['--no-sandbox', "--disable-setuid-sandbox","--disable-gpu"];
-    browser =  await launch(browser_settings)
+    browser =  await pyppeteer.launch(browser_settings)
     return browser
 
 def _parse_cookie(cookie_list):
@@ -53,22 +67,31 @@ def _parse_cookie(cookie_list):
     return {}
 
 class PostHandler(tornado.web.RequestHandler):
-    async def _fetch(self,fetch,page):
-        async def request_check(req):
-            if req.resourceType == 'image':
-                await req.abort()
-
+    async def request_check(self,req,fetch):
+        proxy = fetch.get('proxy', None)
+        if req.resourceType == 'image':
+            await req.abort()
+        else:
+            if proxy:
+                timeout = fetch.get('timeout', 10)
+                connect_timeout = fetch.get('connect_timeout', 10)
+                method=req.method
+                headers= req.headers
+                body= req.postData
+                regex = re.compile("^http://|^https://|^socks5://")
+                proxy_host, proxy_port = regex.sub('', proxy).split(":")
+                t_response = await self.application.http_client.\
+                    fetch(req.url, method = method,body=body,request_timeout=timeout,proxy_host=proxy_host,proxy_port=int(proxy_port),
+                          connect_timeout=connect_timeout,headers=headers,validate_cert=False)
+                p_response = {}
+                p_response['status'] = t_response.code
+                p_response['headers'] = t_response.headers
+                p_response['contentType'] = t_response.headers['Content-Type']
+                p_response['body'] = t_response.body
+                await req.respond(p_response)
             else:
                 await req.continue_()
-                # headers = req.headers
-                # if proxy:
-                #     fetch['headers']['proxy'] = proxy
-                #     headers.update(fetch['headers'])
-                #     # 通过在header设置 "proxy" 头供代理服务器连接接真实代理服务器，代理服务器发出请求时去掉这个头
-                #     await req.continue_(overrides={"headers":headers})
-                # else:
-                #    await req.continue_()
-
+    async def _fetch(self,fetch,page):
         result = {'orig_url': fetch['url'],
                   'status_code': 200,
                   'error': '',
@@ -82,26 +105,21 @@ class PostHandler(tornado.web.RequestHandler):
                   }
         try:
             start_time = datetime.datetime.now()
-
             await page.evaluateOnNewDocument('''() => {
                   Object.defineProperty(navigator, 'webdriver', {
                     get: () => false,
                   });
                 }''')
-            proxy = fetch.get('proxy',None)
-
-            #print(fetch['headers'])
             await page.setExtraHTTPHeaders(fetch['headers'])
             await page.setUserAgent(fetch['headers']['User-Agent'])
             page_settings = {}
             page_settings["waitUntil"] = ["domcontentloaded","networkidle2"]
-            page_settings["timeout"] = fetch['timeout'] * 1000
-            #print(page_settings["timeout"])
-            #await page.setRequestInterception(True)
-            #page.on('request',lambda req:asyncio.ensure_future(request_check(req)))
+            page_settings["timeout"] = fetch.get('timeout',10) * 1000
+            await page.setRequestInterception(True)
+            page.on('request',lambda req:asyncio.ensure_future(self.request_check(req,fetch)))
             response = await page.goto(fetch['url'], page_settings)
-
-            result['content'] = await page.content()
+            #response.text 会强制用utf8解码
+            result['content'] = await response.text()
             result['url'] = page.url
             result['status_code'] = response.status
             result['cookies'] = _parse_cookie(await page.cookies())
@@ -131,7 +149,7 @@ class PostHandler(tornado.web.RequestHandler):
             body = "browser pages is too many, open new browser process!"
             self.set_status(403)
             logging.info(body)
-            self.write(body)
+            self.finish(body)
             return
         raw_data = self.request.body.decode('utf8')
         fetch = json.loads(raw_data, encoding='utf-8')
@@ -147,75 +165,17 @@ class PostHandler(tornado.web.RequestHandler):
         logging.info('{} {}'.format(fetch['url'],result['status_code']))
         #print(result)
         self.write(result)
-class ForwordProxy():
-    def __init__(self,loop,port):
-        self.loop = loop
-        self.port = port
-    async def pipe(self,reader, writer):
-        try:
-            while not reader.at_eof():
-                data = await reader.read(2048)
-                writer.write(data)
-        except (ConnectionError,RuntimeError) as e:
-            pass
-            #logging.warning(f"connection was reset; {e}")
-        finally:
-            writer.close()
-
-    async def handle_client(self,local_reader, local_writer):
-        try:
-            data = await local_reader.read(2048)
-            #logging.info(data)
-            headers = HTTPHeaders.parse(data.decode())
-            proxy = re.search(b'injectproxy(.*)injectproxy', data)
-            CONNECT = False
-            if proxy:
-                regex = re.compile(b"^http://|^https://|^socks5://")
-                host,port = regex.sub(b'',proxy.group(1)).split(b":")
-                #去掉设置puppeteer的 "proxy" 头
-                data = re.sub(b'injectproxy(.*)injectproxy', b'', data)
-            else:
-                #判断是否是https而且不使用代理服务器
-                if data.startswith(b'CONNECT'):
-                    CONNECT = True
-                dest = headers.get('Host')
-                host, port = dest.split(':') if ':' in dest  else (dest,80)
-                #host, port = "127.0.0.1",1080
-            #如果使用代理，或者不使用代理而且是http请求则直接连接代理或者目标服务器
-            fut = asyncio.open_connection(host, port,loop=self.loop,ssl=False)
-            try:
-                remote_reader, remote_writer = await asyncio.wait_for(fut, timeout=3)
-            except (asyncio.TimeoutError,ConnectionRefusedError):
-                return
-            if CONNECT:
-                #如果是https且不使用代理服务器，直接响应200请求给puppeteer
-                local_writer.write(b'HTTP/1.1 200 Connection established\r\n\r\n')
-            else:
-                remote_writer.write(data)
-            #await remote_writer.drain()
-
-            pipe1 = self.pipe(local_reader, remote_writer)
-            pipe2 = self.pipe(remote_reader, local_writer)
-            await asyncio.gather(pipe1, pipe2,loop=self.loop)
-        finally:
-            local_writer.close()
-    def start(self):
-        if env == 'production':
-            coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port,loop=self.loop,backlog=5000,reuse_address=True,reuse_port=True)
-        else:
-            coro = asyncio.start_server(self.handle_client, '127.0.0.1', self.port, loop=self.loop)
-        #asyncio.ensure_future(coro)
-        self.loop.run_until_complete(coro)
 
 def run():
-    with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../config.json')) as f:
-        config = json.load(f)
     global env
-    env = config.get('env','production')
+    try:
+        with open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'../../config.json')) as f:
+            config = json.load(f)
+            env = config.get('env','production')
+    except Exception as e:
+        logging.error(e)
+        env = "production"
     loop = asyncio.get_event_loop()
-    #在本地启动一个代理服务器
-    fp=ForwordProxy(loop,8888)
-    fp.start()
     app = Application()
     app.init_browser(loop)
     app.listen(8071)
