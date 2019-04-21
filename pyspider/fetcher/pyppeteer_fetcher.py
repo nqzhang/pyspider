@@ -50,7 +50,6 @@ async def run_browser():
     browser_settings['devtools'] = False
     browser_settings['autoClose'] = True
     browser_settings['ignoreHTTPSErrors'] = True
-    # 在浏览器级别设置本地代理
     if env == "production":
         browser_settings['executablePath'] = '/usr/bin/google-chrome-stable'
         browser_settings["headless"] = True
@@ -80,9 +79,14 @@ class PostHandler(tornado.web.RequestHandler):
                 body= req.postData
                 regex = re.compile("^http://|^https://|^socks5://")
                 proxy_host, proxy_port = regex.sub('', proxy).split(":")
-                t_response = await self.application.http_client.\
-                    fetch(req.url, method = method,body=body,request_timeout=timeout,proxy_host=proxy_host,proxy_port=int(proxy_port),
-                          connect_timeout=connect_timeout,headers=headers,validate_cert=False)
+                try:
+                    t_response = await self.application.http_client.\
+                        fetch(req.url, method = method,body=body,request_timeout=timeout,proxy_host=proxy_host,proxy_port=int(proxy_port),
+                              connect_timeout=connect_timeout,headers=headers,validate_cert=False)
+                except Exception as e:
+                    await req.respond({"body":str(e)})
+                    logging.exception(e)
+                    raise
                 p_response = {}
                 p_response['status'] = t_response.code
                 p_response['headers'] = t_response.headers
